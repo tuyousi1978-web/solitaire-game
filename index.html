@@ -228,6 +228,15 @@
             cursor: grabbing;
         }
 
+        .card.selected {
+            transform: translateY(-15px);
+            box-shadow: 
+                0 0 0 4px #ffd700,
+                0 12px 24px rgba(0, 0, 0, 0.5),
+                0 4px 8px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
         .card-slot.drag-over {
             border-color: #f0e6d2;
             background: rgba(240, 230, 210, 0.1);
@@ -603,6 +612,8 @@ const CARD_IMAGES = {
                 this.history = [];
                 this.draggedCards = null;
                 this.draggedFrom = null;
+                this.selectedCard = null;
+                this.selectedFrom = null;
                 this.newGame();
             }
 
@@ -753,6 +764,20 @@ const CARD_IMAGES = {
                     const card = this.createCardElement(topCard, true);
                     card.style.position = 'relative';
                     card.draggable = true;
+                    
+                    // クリック/タップで選択
+                    card.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (this.selectedCard && this.selectedFrom && this.selectedFrom.type === 'waste') {
+                            // 既に選択されている場合は選択解除
+                            this.clearSelection();
+                        } else {
+                            // 選択
+                            this.selectCard([topCard], { type: 'waste' });
+                            card.classList.add('selected');
+                        }
+                    });
+                    
                     card.addEventListener('dragstart', (e) => {
                         this.draggedCards = [topCard];
                         this.draggedFrom = { type: 'waste' };
@@ -761,7 +786,10 @@ const CARD_IMAGES = {
                     card.addEventListener('dragend', (e) => {
                         card.classList.remove('dragging');
                     });
-                    card.addEventListener('dblclick', () => this.autoMoveToFoundation(topCard, { type: 'waste' }));
+                    card.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        this.autoMoveToFoundation(topCard, { type: 'waste' });
+                    });
                     wasteEl.appendChild(card);
                     wasteEl.classList.add('has-card');
                 }
@@ -779,6 +807,21 @@ const CARD_IMAGES = {
                         foundationEl.appendChild(card);
                         foundationEl.classList.add('has-card');
                     }
+                    
+                    // クリックで選択されたカードをファウンデーションに移動
+                    foundationEl.addEventListener('click', (e) => {
+                        if (this.selectedCard && this.selectedFrom) {
+                            const cardToMove = Array.isArray(this.selectedCard) ? this.selectedCard[0] : this.selectedCard;
+                            if (this.selectedCard.length === 1 && this.canMoveToFoundation(cardToMove, i)) {
+                                this.moveToFoundation(cardToMove, this.selectedFrom, i);
+                                this.clearSelection();
+                            } else {
+                                // 移動できない場合は選択解除
+                                this.clearSelection();
+                                this.render();
+                            }
+                        }
+                    });
                     
                     foundationEl.addEventListener('dragover', (e) => {
                         e.preventDefault();
@@ -816,6 +859,24 @@ const CARD_IMAGES = {
                         
                         if (card.faceUp) {
                             cardEl.draggable = true;
+                            
+                            // クリック/タップで選択
+                            cardEl.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                const cardsToMove = this.tableau[i].slice(index);
+                                if (this.selectedCard && this.selectedFrom && 
+                                    this.selectedFrom.type === 'tableau' && 
+                                    this.selectedFrom.pile === i && 
+                                    this.selectedFrom.index === index) {
+                                    // 既に選択されている場合は選択解除
+                                    this.clearSelection();
+                                } else {
+                                    // 選択
+                                    this.selectCard(cardsToMove, { type: 'tableau', pile: i, index: index });
+                                    cardEl.classList.add('selected');
+                                }
+                            });
+                            
                             cardEl.addEventListener('dragstart', (e) => {
                                 // Get all cards from this position to the end
                                 this.draggedCards = this.tableau[i].slice(index);
@@ -825,7 +886,8 @@ const CARD_IMAGES = {
                             cardEl.addEventListener('dragend', (e) => {
                                 cardEl.classList.remove('dragging');
                             });
-                            cardEl.addEventListener('dblclick', () => {
+                            cardEl.addEventListener('dblclick', (e) => {
+                                e.stopPropagation();
                                 // Only auto-move if it's the last card
                                 if (index === this.tableau[i].length - 1) {
                                     this.autoMoveToFoundation(card, { type: 'tableau', pile: i });
@@ -847,6 +909,19 @@ const CARD_IMAGES = {
                     });
                     
                     // Make pile accept drops
+                    pileEl.addEventListener('click', (e) => {
+                        // クリックで選択されたカードを移動
+                        if (this.selectedCard && this.selectedFrom) {
+                            if (this.tryMoveSelected(i)) {
+                                // 移動成功
+                            } else {
+                                // 移動失敗、選択解除
+                                this.clearSelection();
+                                this.render();
+                            }
+                        }
+                    });
+                    
                     pileEl.addEventListener('dragover', (e) => {
                         e.preventDefault();
                         if (this.draggedCards && this.draggedCards.length > 0) {
@@ -904,6 +979,53 @@ const CARD_IMAGES = {
                 return false;
             }
 
+            selectCard(cards, from) {
+                // 既存の選択をクリア
+                document.querySelectorAll('.card.selected').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                
+                this.selectedCard = cards;
+                this.selectedFrom = from;
+            }
+
+            tryMoveSelected(toPile) {
+                if (!this.selectedCard || !this.selectedFrom) return false;
+
+                const firstCard = Array.isArray(this.selectedCard) ? this.selectedCard[0] : this.selectedCard;
+
+                // テーブローへの移動を試みる
+                if (this.selectedFrom.type === 'waste') {
+                    if (this.canMove(firstCard, toPile)) {
+                        this.waste.pop();
+                        this.tableau[toPile].push(firstCard);
+                        this.moves++;
+                        this.score += 5;
+                        this.selectedCard = null;
+                        this.selectedFrom = null;
+                        this.render();
+                        return true;
+                    }
+                } else if (this.selectedFrom.type === 'tableau' && this.selectedFrom.pile !== toPile) {
+                    if (this.canMove(firstCard, toPile)) {
+                        this.moveCards(this.selectedFrom.pile, this.selectedFrom.index, toPile);
+                        this.selectedCard = null;
+                        this.selectedFrom = null;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            clearSelection() {
+                document.querySelectorAll('.card.selected').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                this.selectedCard = null;
+                this.selectedFrom = null;
+            }
+
             createCardElement(card, faceUp) {
                 const cardEl = document.createElement('div');
                 cardEl.className = 'card' + (faceUp ? '' : ' face-down');
@@ -916,6 +1038,15 @@ const CARD_IMAGES = {
         }
 
         const game = new Game();
+
+        // 背景クリックで選択解除
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('game-container') || 
+                e.target.tagName === 'BODY' ||
+                e.target.classList.contains('game-board')) {
+                game.clearSelection();
+            }
+        });
 
         // Lock screen orientation to landscape on mobile devices
         if (window.screen && window.screen.orientation) {
