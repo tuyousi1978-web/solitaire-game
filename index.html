@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="screen-orientation" content="landscape">
+    <meta name="x5-orientation" content="landscape">
     <title>ソリティア - Klondike</title>
     
     <!-- iOS Web App Configuration -->
@@ -84,10 +86,14 @@
         }
 
         .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            bottom: max(20px, env(safe-area-inset-bottom));
+            left: max(20px, env(safe-area-inset-left));
             display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 30px;
+            gap: 20px;
+            z-index: 100;
             animation: fadeIn 1s ease-out 0.3s both;
         }
 
@@ -95,11 +101,11 @@
             background: linear-gradient(145deg, #2a5738, #1f4229);
             border: 2px solid #4a7c5a;
             color: #f0e6d2;
-            padding: 12px 30px;
-            font-size: 1rem;
+            padding: 15px 40px;
+            font-size: 1.1rem;
             font-weight: 700;
             letter-spacing: 0.05em;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 
@@ -128,23 +134,23 @@
         .top-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 40px;
-            gap: 20px;
+            margin-bottom: 50px;
+            gap: 25px;
         }
 
         .stock-waste {
             display: flex;
-            gap: 20px;
+            gap: 25px;
         }
 
         .foundations {
             display: flex;
-            gap: 15px;
+            gap: 20px;
         }
 
         .card-slot {
-            width: 120px;
-            height: 168px;
+            width: 300px;
+            height: 420px;
             border: 3px dashed rgba(240, 230, 210, 0.3);
             border-radius: 12px;
             display: flex;
@@ -163,10 +169,12 @@
 
         .card-slot::before {
             content: attr(data-label);
-            color: rgba(240, 230, 210, 0.4);
-            font-size: 0.8rem;
+            color: rgba(240, 230, 210, 0.6);
+            font-size: 6rem;
+            font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.1em;
+        }
         }
 
         .card-slot.has-card::before {
@@ -175,23 +183,23 @@
 
         .tableau {
             display: flex;
-            gap: 15px;
+            gap: 20px;
             justify-content: center;
         }
 
         .pile {
-            width: 120px;
-            min-height: 168px;
+            width: 300px;
+            min-height: 420px;
             position: relative;
         }
 
         .card {
-            width: 120px;
-            height: 168px;
-            border-radius: 10px;
+            width: 300px;
+            height: 420px;
+            border-radius: 12px;
             box-shadow: 
-                0 4px 8px rgba(0, 0, 0, 0.4),
-                0 1px 2px rgba(0, 0, 0, 0.2);
+                0 6px 12px rgba(0, 0, 0, 0.4),
+                0 2px 4px rgba(0, 0, 0, 0.2);
             cursor: pointer;
             transition: all 0.2s ease;
             position: absolute;
@@ -201,10 +209,10 @@
         }
 
         .card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-8px);
             box-shadow: 
-                0 8px 16px rgba(0, 0, 0, 0.5),
-                0 2px 4px rgba(0, 0, 0, 0.3);
+                0 12px 24px rgba(0, 0, 0, 0.5),
+                0 4px 8px rgba(0, 0, 0, 0.3);
         }
 
         .card.face-down {
@@ -298,21 +306,40 @@
             }
         }
 
+        @media (max-width: 1600px) {
+            .card, .card-slot, .pile {
+                width: 150px;
+                height: 210px;
+            }
+
+            .card-slot::before {
+                font-size: 1rem;
+            }
+        }
+
         @media (max-width: 1200px) {
             .card, .card-slot, .pile {
-                width: 100px;
-                height: 140px;
+                width: 120px;
+                height: 168px;
+            }
+
+            .card-slot::before {
+                font-size: 0.9rem;
             }
         }
 
         @media (max-width: 900px) {
             .card, .card-slot, .pile {
-                width: 80px;
-                height: 112px;
+                width: 100px;
+                height: 140px;
             }
 
             .foundations, .tableau {
                 gap: 10px;
+            }
+
+            .card-slot::before {
+                font-size: 0.8rem;
             }
         }
 
@@ -350,8 +377,8 @@
             }
 
             .card, .card-slot, .pile {
-                width: 55px;
-                height: 77px;
+                width: 70px;
+                height: 98px;
             }
 
             .tableau {
@@ -376,7 +403,7 @@
             }
 
             .card-slot::before {
-                font-size: 0.65rem;
+                font-size: 0.7rem;
             }
 
             .pile .card {
@@ -384,18 +411,18 @@
             }
 
             .pile .card:nth-child(1) { top: 0px !important; }
-            .pile .card:nth-child(2) { top: 12px !important; }
-            .pile .card:nth-child(3) { top: 24px !important; }
-            .pile .card:nth-child(4) { top: 36px !important; }
-            .pile .card:nth-child(5) { top: 48px !important; }
-            .pile .card:nth-child(6) { top: 60px !important; }
-            .pile .card:nth-child(7) { top: 72px !important; }
-            .pile .card:nth-child(8) { top: 84px !important; }
-            .pile .card:nth-child(9) { top: 96px !important; }
-            .pile .card:nth-child(10) { top: 108px !important; }
-            .pile .card:nth-child(11) { top: 120px !important; }
-            .pile .card:nth-child(12) { top: 132px !important; }
-            .pile .card:nth-child(13) { top: 144px !important; }
+            .pile .card:nth-child(2) { top: 15px !important; }
+            .pile .card:nth-child(3) { top: 30px !important; }
+            .pile .card:nth-child(4) { top: 45px !important; }
+            .pile .card:nth-child(5) { top: 60px !important; }
+            .pile .card:nth-child(6) { top: 75px !important; }
+            .pile .card:nth-child(7) { top: 90px !important; }
+            .pile .card:nth-child(8) { top: 105px !important; }
+            .pile .card:nth-child(9) { top: 120px !important; }
+            .pile .card:nth-child(10) { top: 135px !important; }
+            .pile .card:nth-child(11) { top: 150px !important; }
+            .pile .card:nth-child(12) { top: 165px !important; }
+            .pile .card:nth-child(13) { top: 180px !important; }
 
             .victory-content {
                 padding: 25px;
@@ -415,8 +442,12 @@
         /* Tablet landscape */
         @media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
             .card, .card-slot, .pile {
-                width: 90px;
-                height: 126px;
+                width: 110px;
+                height: 154px;
+            }
+
+            .card-slot::before {
+                font-size: 0.9rem;
             }
 
             .pile .card {
@@ -424,18 +455,18 @@
             }
 
             .pile .card:nth-child(1) { top: 0px !important; }
-            .pile .card:nth-child(2) { top: 20px !important; }
-            .pile .card:nth-child(3) { top: 40px !important; }
-            .pile .card:nth-child(4) { top: 60px !important; }
-            .pile .card:nth-child(5) { top: 80px !important; }
-            .pile .card:nth-child(6) { top: 100px !important; }
-            .pile .card:nth-child(7) { top: 120px !important; }
-            .pile .card:nth-child(8) { top: 140px !important; }
-            .pile .card:nth-child(9) { top: 160px !important; }
-            .pile .card:nth-child(10) { top: 180px !important; }
-            .pile .card:nth-child(11) { top: 200px !important; }
-            .pile .card:nth-child(12) { top: 220px !important; }
-            .pile .card:nth-child(13) { top: 240px !important; }
+            .pile .card:nth-child(2) { top: 22px !important; }
+            .pile .card:nth-child(3) { top: 44px !important; }
+            .pile .card:nth-child(4) { top: 66px !important; }
+            .pile .card:nth-child(5) { top: 88px !important; }
+            .pile .card:nth-child(6) { top: 110px !important; }
+            .pile .card:nth-child(7) { top: 132px !important; }
+            .pile .card:nth-child(8) { top: 154px !important; }
+            .pile .card:nth-child(9) { top: 176px !important; }
+            .pile .card:nth-child(10) { top: 198px !important; }
+            .pile .card:nth-child(11) { top: 220px !important; }
+            .pile .card:nth-child(12) { top: 242px !important; }
+            .pile .card:nth-child(13) { top: 264px !important; }
         }
     </style>
 </head>
@@ -448,8 +479,8 @@
         <div class="game-board">
             <div class="top-row">
                 <div class="stock-waste">
-                    <div class="card-slot" id="stock" data-label="山札" onclick="game.dealCards()"></div>
-                    <div class="card-slot" id="waste" data-label="捨て札"></div>
+                    <div class="card-slot" id="stock" data-label="" onclick="game.dealCards()"></div>
+                    <div class="card-slot" id="waste" data-label=""></div>
                 </div>
                 <div class="foundations">
                     <div class="card-slot foundation" id="foundation-0" data-suit="0" data-label="♠"></div>
@@ -780,7 +811,7 @@ const CARD_IMAGES = {
                     
                     this.tableau[i].forEach((card, index) => {
                         const cardEl = this.createCardElement(card, card.faceUp);
-                        cardEl.style.top = `${index * 25}px`;
+                        cardEl.style.top = `${index * 63}px`;
                         cardEl.setAttribute('data-index', index + 1);
                         
                         if (card.faceUp) {
@@ -885,6 +916,19 @@ const CARD_IMAGES = {
         }
 
         const game = new Game();
+
+        // Lock screen orientation to landscape on mobile devices
+        if (window.screen && window.screen.orientation) {
+            // Modern API
+            if (window.screen.orientation.lock) {
+                window.screen.orientation.lock('landscape').catch((err) => {
+                    console.log('Orientation lock not supported:', err);
+                });
+            }
+        } else if (window.screen && window.screen.lockOrientation) {
+            // Legacy API
+            window.screen.lockOrientation('landscape');
+        }
     </script>
 </body>
 </html>
