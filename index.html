@@ -3,57 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Complete Motion Solitaire</title>
+    <title>Ultimate Motion Solitaire</title>
     <style>
         :root {
             --card-w: min(12vw, 80px);
             --card-h: calc(var(--card-w) * 1.4);
             --gap: min(1.2vw, 10px);
-            --anim-speed: 0.3s;
+            --anim-speed: 0.4s;
         }
         body {
-            margin: 0; background: radial-gradient(circle, #2d5a3d, #12331d);
-            font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column;
+            margin: 0; background: radial-gradient(circle, #1a472a, #0d2818);
+            font-family: 'Helvetica Neue', sans-serif; display: flex; flex-direction: column;
             align-items: center; height: 100vh; overflow: hidden; color: white;
         }
-        .board { width: 100%; max-width: 800px; padding: 20px; display: flex; flex-direction: column; gap: 25px; }
+        .board { width: 100%; max-width: 800px; padding: 20px; display: flex; flex-direction: column; gap: 30px; }
         .row { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--gap); }
         .slot {
-            width: var(--card-w); height: var(--card-h); border-radius: 6px;
-            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            width: var(--card-w); height: var(--card-h); border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2); border: 2px solid rgba(255, 255, 255, 0.05);
             position: relative;
         }
-        .card {
-            width: var(--card-w); height: var(--card-h); border-radius: 6px;
-            background: white; position: absolute; color: black;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex;
-            flex-direction: column; padding: 6px; box-sizing: border-box; 
-            cursor: pointer; z-index: 10;
-            transition: transform var(--anim-speed) cubic-bezier(0.25, 1, 0.5, 1), top var(--anim-speed) ease-out;
-            user-select: none;
-            backface-visibility: hidden;
+        
+        /* カードの基本構造（3D反転用） */
+        .card-container {
+            width: var(--card-w); height: var(--card-h);
+            position: absolute; transition: transform var(--anim-speed) cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d; z-index: 10; cursor: pointer;
         }
-        .card.moving { z-index: 1000 !important; }
-        .card.back { 
+        .card-container.moving { z-index: 1000 !important; }
+        .card-container.flipped { transform: rotateY(180deg); }
+
+        .card-face {
+            width: 100%; height: 100%; border-radius: 8px; position: absolute;
+            backface-visibility: hidden; display: flex; flex-direction: column;
+            padding: 8px; box-sizing: border-box; box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+
+        .card-front { background: white; color: black; transform: rotateY(180deg); }
+        .card-back { 
             background: #2c3e50; border: 2px solid white;
-            background-image: repeating-linear-gradient(45deg, #34495e, #34495e 5px, #2c3e50 5px, #2c3e50 10px);
+            background-image: repeating-linear-gradient(45deg, #34495e 0, #34495e 5px, #2c3e50 5px, #2c3e50 10px);
         }
-        .card.red { color: #d63031; }
-        .rank { font-size: 1rem; font-weight: bold; line-height: 1; }
-        .suit { font-size: 1.2rem; }
 
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-10px); }
-            40% { transform: translateX(10px); }
-            60% { transform: translateX(-10px); }
-            80% { transform: translateX(10px); }
+        .red { color: #d63031; }
+        .rank { font-size: 1.1rem; font-weight: bold; }
+        .suit { font-size: 1.4rem; }
+
+        @keyframes error-shake {
+            0% { transform: translateX(0); }
+            20% { transform: translateX(-12px) rotate(-2deg); }
+            40% { transform: translateX(12px) rotate(2deg); }
+            60% { transform: translateX(-8px) rotate(-1deg); }
+            80% { transform: translateX(8px) rotate(1deg); }
+            100% { transform: translateX(0); }
         }
-        .card.error-shake { animation: shake 0.4s ease-in-out; border: 2px solid #ff4757; }
+        .error-anim { animation: error-shake 0.4s ease-in-out !important; }
 
-        .controls { margin-top: 20px; }
-        button { padding: 10px 25px; border-radius: 30px; border: none; background: #f1c40f; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #f39c12; transform: scale(1.05); }
+        .btn {
+            background: #f1c40f; border: none; padding: 12px 30px; border-radius: 50px;
+            font-weight: bold; cursor: pointer; color: #1a472a; box-shadow: 0 4px 0 #c29d0b;
+        }
+        .btn:active { transform: translateY(2px); box-shadow: none; }
     </style>
 </head>
 <body>
@@ -78,7 +88,7 @@
         <div id="p-6" class="slot"></div>
     </div>
 </div>
-<div class="controls"><button onclick="game.init()">START / RESET</button></div>
+<button class="btn" onclick="game.init()">NEW GAME</button>
 
 <script>
 class Solitaire {
@@ -92,7 +102,6 @@ class Solitaire {
     async init() {
         if (this.isAnimating) return;
         document.querySelectorAll('.slot').forEach(s => s.innerHTML = '');
-        
         this.deck = [];
         for(let s=0; s<4; s++) for(let r=1; r<=13; r++) 
             this.deck.push({ s, r, color: (s%2===1)?'red':'black', face: false });
@@ -103,18 +112,14 @@ class Solitaire {
         this.founds = [[],[],[],[]];
         this.piles = Array.from({length:7}, () => []);
 
-        // 1. 配布アニメーション：山札から各列へ
         this.isAnimating = true;
         for(let i=0; i<7; i++) {
             for(let j=i; j<7; j++) {
                 const card = this.stock.pop();
-                if(i===j) card.face = true;
-                
-                // アニメーション用の一時的な描画
-                const tempEl = this.createCardUI({face: false}); // 配るときは裏向き
-                document.getElementById('stock').appendChild(tempEl);
-                
-                await this.moveElement(tempEl, `p-${j}`, this.piles[j].length);
+                const temp = this.createCardDOM(card);
+                document.getElementById('stock').appendChild(temp);
+                await this.moveAndFlip(temp, `p-${j}`, this.piles[j].length, i===j);
+                card.face = i===j;
                 this.piles[j].push(card);
                 this.render();
             }
@@ -130,7 +135,6 @@ class Solitaire {
         }
     }
 
-    // 2. 山札めくりアニメーション
     async draw() {
         if(this.isAnimating) return;
         if(!this.stock.length) {
@@ -138,83 +142,94 @@ class Solitaire {
             this.waste = [];
             this.render();
         } else {
-            const tempEl = this.createCardUI({face: false});
-            document.getElementById('stock').appendChild(tempEl);
-            await this.moveElement(tempEl, 'waste');
+            const card = this.stock[this.stock.length-1];
+            const temp = this.createCardDOM(card);
+            document.getElementById('stock').appendChild(temp);
+            await this.moveAndFlip(temp, 'waste', 0, true);
             this.waste.push({...this.stock.pop(), face: true});
             this.render();
         }
     }
 
-    // 3. 移動＆失敗時のアニメーション
-    async tryMove(card, fromArr, cardEl) {
+    async tryMove(card, fromArr, el) {
         if (this.isAnimating) return;
-        let targetId = null;
-        let targetArray = null;
+        let target = null;
 
         // ルール判定
         for(let i=0; i<4; i++) {
             const f = this.founds[i];
             if(card.s === i && ((f.length===0 && card.r===1) || (f.length>0 && f[f.length-1].r === card.r-1))) {
-                targetId = `f-${i}`; targetArray = f; break;
+                target = { id: `f-${i}`, array: f }; break;
             }
         }
-        if(!targetId) {
+        if(!target) {
             for(let i=0; i<7; i++) {
                 const p = this.piles[i]; if(p === fromArr) continue;
                 const top = p[p.length-1];
                 if((!top && card.r === 13) || (top && top.face && top.color !== card.color && top.r === card.r + 1)) {
-                    targetId = `p-${i}`; targetArray = p; break;
+                    target = { id: `p-${i}`, array: p, offset: p.length }; break;
                 }
             }
         }
 
-        if(targetId) {
-            await this.moveElement(cardEl, targetId, targetArray.length);
-            targetArray.push(fromArr.pop());
-            if(fromArr.length > 0) fromArr[fromArr.length-1].face = true;
+        if(target) {
+            await this.moveAndFlip(el, target.id, target.offset || 0, true);
+            target.array.push(fromArr.pop());
+            if(fromArr.length > 0 && !fromArr[fromArr.length-1].face) {
+                fromArr[fromArr.length-1].face = true;
+            }
             this.render();
         } else {
-            // 4. 失敗時のアニメーション（震える）
             this.isAnimating = true;
-            cardEl.classList.add('error-shake');
-            setTimeout(() => {
-                cardEl.classList.remove('error-shake');
-                this.isAnimating = false;
-            }, 400);
+            el.classList.add('error-anim');
+            setTimeout(() => { el.classList.remove('error-anim'); this.isAnimating = false; }, 400);
         }
     }
 
-    moveElement(el, targetId, offset = 0) {
+    moveAndFlip(el, targetId, offset, shouldFaceUp) {
         return new Promise(resolve => {
-            this.isAnimating = true;
             const targetEl = document.getElementById(targetId);
             const start = el.getBoundingClientRect();
             const end = targetEl.getBoundingClientRect();
             
-            const x = end.left - start.left;
-            const y = (end.top - start.top) + (offset * 20);
-
             el.classList.add('moving');
-            el.style.transform = `translate(${x}px, ${y}px)`;
-            
+            el.style.transform = `translate(${end.left - start.left}px, ${(end.top - start.top) + (offset * 22)}px)`;
+            if(shouldFaceUp) el.classList.add('flipped');
+
             setTimeout(() => {
                 el.classList.remove('moving');
-                this.isAnimating = false;
                 resolve();
-            }, 300);
+            }, 400);
         });
     }
 
+    createCardDOM(card, arr = null) {
+        const container = document.createElement('div');
+        container.className = `card-container ${card.face ? 'flipped' : ''}`;
+        
+        container.innerHTML = `
+            <div class="card-face card-back"></div>
+            <div class="card-face card-front ${card.color}">
+                <div class="rank">${this.ranks[card.r-1]}</div>
+                <div class="suit">${this.suits[card.s]}</div>
+            </div>
+        `;
+        
+        if(arr && card.face) {
+            container.onclick = (e) => { e.stopPropagation(); this.tryMove(card, arr, container); };
+        }
+        return container;
+    }
+
     render() {
-        document.getElementById('stock').innerHTML = this.stock.length ? `<div class="card back"></div>` : '';
+        document.getElementById('stock').innerHTML = this.stock.length ? `<div class="card-container"><div class="card-face card-back"></div></div>` : '';
         this.renderTarget('waste', this.waste);
         for(let i=0; i<4; i++) this.renderTarget(`f-${i}`, this.founds[i]);
         for(let i=0; i<7; i++) {
             const p = document.getElementById(`p-${i}`); p.innerHTML = '';
             this.piles[i].forEach((c, idx) => {
-                const el = this.createCardUI(c, this.piles[i]);
-                el.style.top = (idx * 20) + 'px';
+                const el = this.createCardDOM(c, this.piles[i]);
+                el.style.top = (idx * 22) + 'px';
                 p.appendChild(el);
             });
         }
@@ -222,17 +237,7 @@ class Solitaire {
 
     renderTarget(id, arr) {
         const slot = document.getElementById(id); slot.innerHTML = '';
-        if(arr.length) slot.appendChild(this.createCardUI(arr[arr.length-1], arr));
-    }
-
-    createCardUI(card, arr = null) {
-        const div = document.createElement('div');
-        div.className = `card ${card.face ? card.color : 'back'}`;
-        if(card.face) {
-            div.innerHTML = `<div class="rank">${this.ranks[card.r-1]}</div><div class="suit">${this.suits[card.s]}</div>`;
-            if(arr) div.onclick = (e) => { e.stopPropagation(); this.tryMove(card, arr, div); };
-        }
-        return div;
+        if(arr.length) slot.appendChild(this.createCardDOM(arr[arr.length-1], arr));
     }
 }
 const game = new Solitaire();
