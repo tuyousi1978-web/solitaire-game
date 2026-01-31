@@ -3,58 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Classic Solitaire Pro</title>
+    <title>Motion Solitaire - Tactile Feel</title>
     <style>
         :root {
             --card-w: min(12vw, 80px);
             --card-h: calc(var(--card-w) * 1.4);
             --gap: min(1.2vw, 10px);
-            --anim-speed: 0.25s;
+            /* 物理的な質感を出すためのベジェ曲線 */
+            --spring-ease: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --smooth-ease: cubic-bezier(0.4, 0, 0.2, 1);
         }
         body {
-            margin: 0; background: radial-gradient(circle, #1a472a, #0d2818);
-            font-family: 'Helvetica Neue', sans-serif; display: flex; flex-direction: column;
-            align-items: center; height: 100vh; overflow: hidden; color: white;
+            margin: 0; background: #1a472a;
+            background-image: radial-gradient(circle at center, #2d5a3d 0%, #1a472a 100%);
+            font-family: sans-serif; display: flex; flex-direction: column;
+            align-items: center; height: 100vh; overflow: hidden;
         }
-        .board { width: 100%; max-width: 800px; padding: 20px; display: flex; flex-direction: column; gap: 25px; }
+        .board { width: 100%; max-width: 850px; padding: 20px; display: flex; flex-direction: column; gap: 30px; }
         .row { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--gap); }
         .slot {
             width: var(--card-w); height: var(--card-h); border-radius: 8px;
-            background: rgba(0, 0, 0, 0.2); border: 2px solid rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.15); border: 2px solid rgba(255, 255, 255, 0.03);
             position: relative;
         }
+        
+        /* モーションの核となる設定 */
         .card-container {
             width: var(--card-w); height: var(--card-h);
-            position: absolute; transition: transform var(--anim-speed) ease-out;
-            transform-style: preserve-3d; z-index: 10; cursor: pointer;
+            position: absolute; transform-style: preserve-3d;
+            transition: transform 0.4s var(--spring-ease), box-shadow 0.2s ease;
+            cursor: pointer; z-index: 10;
         }
-        .card-container.moving { z-index: 2000 !important; transition: transform var(--anim-speed) cubic-bezier(0.2, 0.8, 0.2, 1); }
+        
+        .card-container.moving { z-index: 2000 !important; }
         .card-container.flipped { transform: rotateY(180deg); }
+        
         .card-face {
             width: 100%; height: 100%; border-radius: 6px; position: absolute;
             backface-visibility: hidden; display: flex; flex-direction: column;
-            padding: 6px; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            border: 1px solid #999;
+            padding: 8px; box-sizing: border-box;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            border: 1px solid rgba(0,0,0,0.1);
         }
-        .card-front { background: white; color: black; transform: rotateY(180deg); }
+
+        .card-front { background: white; color: #1a1a1a; transform: rotateY(180deg); }
         .card-back { 
-            background: #2c3e50; border: 2px solid white;
-            background-image: repeating-linear-gradient(45deg, #34495e 0, #34495e 5px, #2c3e50 5px, #2c3e50 10px);
+            background: #2c3e50; border: 2px solid #ecf0f1;
+            background-image: repeating-linear-gradient(135deg, #34495e, #34495e 5px, #2c3e50 5px, #2c3e50 10px);
         }
-        .red { color: #d63031; }
-        .rank { font-size: 1rem; font-weight: bold; }
-        .suit { font-size: 1.2rem; align-self: center; margin-top: 5px; }
-        @keyframes error-shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
+
+        /* ホバー時の「浮き」モーション */
+        .card-container:hover .card-front {
+            transform: rotateY(180deg) translateZ(10px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
         }
-        .error-anim { animation: error-shake 0.3s ease-in-out; }
-        .controls { margin-top: 20px; }
+
+        .red { color: #c0392b; }
+        .rank { font-size: 1.1rem; font-weight: bold; line-height: 1; }
+        .suit { font-size: 1.4rem; align-self: center; margin-top: 4px; }
+
+        @keyframes deal-in {
+            from { transform: translateY(-100vh) rotate(-20deg); opacity: 0; }
+            to { transform: translateY(0) rotate(0deg); opacity: 1; }
+        }
+        .dealing { animation: deal-in 0.5s var(--spring-ease) both; }
+
         .btn {
-            background: #f1c40f; border: none; padding: 10px 25px; border-radius: 20px;
-            font-weight: bold; cursor: pointer; color: #1a472a;
+            background: #f1c40f; border: none; padding: 10px 30px; border-radius: 4px;
+            font-weight: bold; cursor: pointer; box-shadow: 0 3px 0 #d4ac0d;
+            transition: all 0.1s; color: #1a472a;
         }
+        .btn:active { transform: translateY(3px); box-shadow: none; }
     </style>
 </head>
 <body>
@@ -63,22 +82,22 @@
         <div id="stock" class="slot" onclick="game.draw()"></div>
         <div id="waste" class="slot"></div>
         <div></div>
-        <div id="f-0" class="slot" onclick="game.autoToFoundations()"></div>
+        <div id="f-0" class="slot"></div>
         <div id="f-1" class="slot"></div>
         <div id="f-2" class="slot"></div>
         <div id="f-3" class="slot"></div>
     </div>
     <div class="row" id="tableau">
-        <div id="p-0" class="slot" onclick="game.handleEmptyClick(0)"></div>
-        <div id="p-1" class="slot" onclick="game.handleEmptyClick(1)"></div>
-        <div id="p-2" class="slot" onclick="game.handleEmptyClick(2)"></div>
-        <div id="p-3" class="slot" onclick="game.handleEmptyClick(3)"></div>
-        <div id="p-4" class="slot" onclick="game.handleEmptyClick(4)"></div>
-        <div id="p-5" class="slot" onclick="game.handleEmptyClick(5)"></div>
-        <div id="p-6" class="slot" onclick="game.handleEmptyClick(6)"></div>
+        <div id="p-0" class="slot"></div>
+        <div id="p-1" class="slot"></div>
+        <div id="p-2" class="slot"></div>
+        <div id="p-3" class="slot"></div>
+        <div id="p-4" class="slot"></div>
+        <div id="p-5" class="slot"></div>
+        <div id="p-6" class="slot"></div>
     </div>
 </div>
-<div class="controls"><button class="btn" onclick="game.init()">NEW GAME</button></div>
+<button class="btn" onclick="game.init()">NEW GAME</button>
 
 <script>
 class Solitaire {
@@ -91,24 +110,27 @@ class Solitaire {
 
     async init() {
         if (this.isAnimating) return;
+        this.isAnimating = true;
+        document.querySelectorAll('.slot').forEach(s => s.innerHTML = '');
+        
         this.deck = [];
         for(let s=0; s<4; s++) for(let r=1; r<=13; r++) 
             this.deck.push({ s, r, color: (s%2===1)?'red':'black', face: false });
+        
         this.shuffle();
         this.stock = this.deck;
         this.waste = [];
         this.founds = [[],[],[],[]];
         this.piles = Array.from({length:7}, () => []);
 
-        this.isAnimating = true;
-        this.render();
+        // 配布モーション（時間差でリズムを作る）
         for(let i=0; i<7; i++) {
             for(let j=i; j<7; j++) {
                 const card = this.stock.pop();
                 if(i===j) card.face = true;
                 this.piles[j].push(card);
-                await new Promise(r => setTimeout(r, 40));
                 this.render();
+                await new Promise(r => setTimeout(r, 60));
             }
         }
         this.isAnimating = false;
@@ -127,111 +149,86 @@ class Solitaire {
             this.stock = this.waste.reverse().map(c=>({...c, face:false}));
             this.waste = [];
         } else {
-            const card = this.stock.pop();
-            card.face = true;
-            this.waste.push(card);
+            this.waste.push({...this.stock.pop(), face: true});
         }
         this.render();
     }
 
-    async tryMove(cardIdx, fromPileIdx, el) {
+    async tryMove(cardIdx, pileIdx, el) {
         if (this.isAnimating) return;
-        const pile = this.piles[fromPileIdx] || this.waste;
-        const isFromWaste = !this.piles[fromPileIdx];
-        const cardsToMove = isFromWaste ? [this.waste[this.waste.length-1]] : pile.slice(cardIdx);
-        const card = cardsToMove[0];
+        const fromPile = this.piles[pileIdx] || this.waste;
+        const isFromWaste = pileIdx === -1;
+        const moveBatch = isFromWaste ? [this.waste[this.waste.length-1]] : fromPile.slice(cardIdx);
+        const card = moveBatch[0];
 
-        // 1. 組札へのチェック (1枚の時のみ)
-        if(cardsToMove.length === 1) {
+        // 移動先検索
+        let target = null;
+        if(moveBatch.length === 1) {
             for(let i=0; i<4; i++) {
-                const f = this.founds[i];
-                if(card.s === i && ((f.length===0 && card.r===1) || (f.length>0 && f[f.length-1].r === card.r-1))) {
-                    await this.animateMove(el, `f-${i}`, 0);
-                    this.founds[i].push(isFromWaste ? this.waste.pop() : pile.pop());
-                    this.afterAction(pile);
-                    return;
+                if(card.s === i && ((this.founds[i].length===0 && card.r===1) || (this.founds[i].length>0 && this.founds[i][this.founds[i].length-1].r === card.r-1))) {
+                    target = { id: `f-${i}`, arr: this.founds[i] }; break;
+                }
+            }
+        }
+        if(!target) {
+            for(let i=0; i<7; i++) {
+                const p = this.piles[i]; if(p === fromPile) continue;
+                const top = p[p.length-1];
+                if((!top && card.r === 13) || (top && top.face && top.color !== card.color && top.r === card.r + 1)) {
+                    target = { id: `p-${i}`, arr: p, offset: p.length }; break;
                 }
             }
         }
 
-        // 2. 場札へのチェック
-        for(let i=0; i<7; i++) {
-            const targetPile = this.piles[i];
-            if(targetPile === pile) continue;
-            const top = targetPile[targetPile.length-1];
-            if((!top && card.r === 13) || (top && top.face && top.color !== card.color && top.r === card.r + 1)) {
-                const elements = isFromWaste ? [el] : Array.from(el.parentNode.children).slice(cardIdx);
-                await this.animateStack(elements, `p-${i}`, targetPile.length);
-                
-                const moved = isFromWaste ? [this.waste.pop()] : pile.splice(cardIdx);
-                this.piles[i].push(...moved);
-                this.afterAction(pile);
-                return;
-            }
-        }
-        el.classList.add('error-anim');
-        setTimeout(() => el.classList.remove('error-anim'), 300);
-    }
-
-    afterAction(pile) {
-        if(pile && pile.length > 0) pile[pile.length-1].face = true;
-        this.render();
-    }
-
-    animateMove(el, targetId, offset) {
-        return new Promise(resolve => {
+        if(target) {
             this.isAnimating = true;
             const rect = el.getBoundingClientRect();
-            const target = document.getElementById(targetId).getBoundingClientRect();
-            el.classList.add('moving');
-            el.style.transform = `translate(${target.left - rect.left}px, ${target.top - rect.top + (offset*20)}px)`;
-            setTimeout(() => { el.classList.remove('moving'); this.isAnimating = false; resolve(); }, 250);
-        });
-    }
-
-    async animateStack(els, targetId, startOffset) {
-        this.isAnimating = true;
-        const targetRect = document.getElementById(targetId).getBoundingClientRect();
-        const promises = els.map((el, i) => {
-            const rect = el.getBoundingClientRect();
-            el.classList.add('moving');
-            el.style.transform = `translate(${targetRect.left - rect.left}px, ${targetRect.top - rect.top + ((startOffset+i)*20) - parseInt(el.style.top || 0)}px)`;
-            return new Promise(r => setTimeout(r, 250));
-        });
-        await Promise.all(promises);
-        els.forEach(el => el.classList.remove('moving'));
-        this.isAnimating = false;
+            const dest = document.getElementById(target.id).getBoundingClientRect();
+            
+            el.style.transform = `translate(${dest.left - rect.left}px, ${(dest.top - rect.top) + (target.offset||0)*20}px) rotateY(180deg)`;
+            
+            setTimeout(() => {
+                target.arr.push(...(isFromWaste ? [this.waste.pop()] : fromPile.splice(cardIdx)));
+                if(fromPile.length > 0) fromPile[fromPile.length-1].face = true;
+                this.isAnimating = false;
+                this.render();
+            }, 300);
+        } else {
+            // 失敗モーション（弾むようなエラー）
+            el.style.transform = `translateX(-10px) rotateY(180deg)`;
+            setTimeout(() => { el.style.transform = `translateX(10px) rotateY(180deg)`;
+                setTimeout(() => { el.style.transform = `rotateY(180deg)`; }, 100);
+            }, 100);
+        }
     }
 
     render() {
         document.getElementById('stock').innerHTML = this.stock.length ? `<div class="card-container"><div class="card-face card-back"></div></div>` : '';
-        this.renderTarget('waste', this.waste, -1);
-        for(let i=0; i<4; i++) this.renderTarget(`f-${i}`, this.founds[i], -1);
+        this.renderSlot('waste', this.waste, -1);
+        for(let i=0; i<4; i++) this.renderSlot(`f-${i}`, this.founds[i], -1);
         for(let i=0; i<7; i++) {
             const p = document.getElementById(`p-${i}`); p.innerHTML = '';
             this.piles[i].forEach((c, idx) => {
-                const el = this.createCardDOM(c, i, idx);
+                const el = this.createDOM(c, i, idx);
                 el.style.top = (idx * 20) + 'px';
                 p.appendChild(el);
             });
         }
     }
 
-    renderTarget(id, arr, pileIdx) {
-        const slot = document.getElementById(id); slot.innerHTML = '';
-        if(arr.length) slot.appendChild(this.createCardDOM(arr[arr.length-1], pileIdx, arr.length-1));
+    renderSlot(id, arr, pIdx) {
+        const s = document.getElementById(id); s.innerHTML = '';
+        if(arr.length) s.appendChild(this.createDOM(arr[arr.length-1], pIdx, arr.length-1));
     }
 
-    createCardDOM(card, pileIdx, cardIdx) {
-        const container = document.createElement('div');
-        container.className = `card-container ${card.face ? 'flipped' : ''}`;
-        container.innerHTML = `<div class="card-face card-back"></div><div class="card-face card-front ${card.color}">
+    createDOM(card, pIdx, cIdx) {
+        const wrap = document.createElement('div');
+        wrap.className = `card-container ${card.face ? 'flipped' : ''}`;
+        wrap.innerHTML = `<div class="card-face card-back"></div><div class="card-face card-front ${card.color}">
             <div class="rank">${this.ranks[card.r-1]}</div><div class="suit">${this.suits[card.s]}</div></div>`;
-        if(card.face) container.onclick = (e) => { e.stopPropagation(); this.tryMove(cardIdx, pileIdx, container); };
-        return container;
+        if(card.face) wrap.onclick = (e) => { e.stopPropagation(); this.tryMove(cIdx, pIdx, wrap); };
+        return wrap;
     }
-
-    handleEmptyClick(i) { this.render(); }
 }
 const game = new Solitaire();
 </script>
