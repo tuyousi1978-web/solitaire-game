@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Full Motion Solitaire - Pro</title>
+    <title>Complete Motion Solitaire</title>
     <style>
         :root {
             --card-w: min(12vw, 80px);
             --card-h: calc(var(--card-w) * 1.4);
             --gap: min(1.2vw, 10px);
-            --anim-speed: 300ms;
+            --anim-speed: 0.3s;
         }
         body {
             margin: 0; background: radial-gradient(circle, #2d5a3d, #12331d);
-            font-family: sans-serif; display: flex; flex-direction: column;
+            font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column;
             align-items: center; height: 100vh; overflow: hidden; color: white;
         }
-        .board { width: 100%; max-width: 800px; padding: 20px; display: flex; flex-direction: column; gap: 25px; margin-top: 10px; }
+        .board { width: 100%; max-width: 800px; padding: 20px; display: flex; flex-direction: column; gap: 25px; }
         .row { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--gap); }
         .slot {
             width: var(--card-w); height: var(--card-h); border-radius: 6px;
@@ -29,16 +29,10 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex;
             flex-direction: column; padding: 6px; box-sizing: border-box; 
             cursor: pointer; z-index: 10;
-            transition: transform var(--anim-speed) ease-out, top var(--anim-speed) ease-out;
+            transition: transform var(--anim-speed) cubic-bezier(0.25, 1, 0.5, 1), top var(--anim-speed) ease-out;
             user-select: none;
+            backface-visibility: hidden;
         }
-        /* エラー時の震えるアニメーション */
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-8px); }
-            75% { transform: translateX(8px); }
-        }
-        .card.error { animation: shake 0.2s ease-in-out 2; border: 2px solid #ff4757; }
         .card.moving { z-index: 1000 !important; }
         .card.back { 
             background: #2c3e50; border: 2px solid white;
@@ -47,8 +41,19 @@
         .card.red { color: #d63031; }
         .rank { font-size: 1rem; font-weight: bold; line-height: 1; }
         .suit { font-size: 1.2rem; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-10px); }
+            80% { transform: translateX(10px); }
+        }
+        .card.error-shake { animation: shake 0.4s ease-in-out; border: 2px solid #ff4757; }
+
         .controls { margin-top: 20px; }
-        button { padding: 8px 20px; border-radius: 20px; border: none; background: #f1c40f; font-weight: bold; cursor: pointer; }
+        button { padding: 10px 25px; border-radius: 30px; border: none; background: #f1c40f; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #f39c12; transform: scale(1.05); }
     </style>
 </head>
 <body>
@@ -58,10 +63,10 @@
         <div id="stock" class="slot" onclick="game.draw()"></div>
         <div id="waste" class="slot"></div>
         <div></div>
-        <div id="f-0" class="slot" data-type="foundation"></div>
-        <div id="f-1" class="slot" data-type="foundation"></div>
-        <div id="f-2" class="slot" data-type="foundation"></div>
-        <div id="f-3" class="slot" data-type="foundation"></div>
+        <div id="f-0" class="slot"></div>
+        <div id="f-1" class="slot"></div>
+        <div id="f-2" class="slot"></div>
+        <div id="f-3" class="slot"></div>
     </div>
     <div class="row" id="tableau">
         <div id="p-0" class="slot"></div>
@@ -73,7 +78,7 @@
         <div id="p-6" class="slot"></div>
     </div>
 </div>
-<div class="controls"><button onclick="game.init()">NEW GAME</button></div>
+<div class="controls"><button onclick="game.init()">START / RESET</button></div>
 
 <script>
 class Solitaire {
@@ -86,31 +91,38 @@ class Solitaire {
 
     async init() {
         if (this.isAnimating) return;
-        this.clearBoard();
+        document.querySelectorAll('.slot').forEach(s => s.innerHTML = '');
+        
         this.deck = [];
         for(let s=0; s<4; s++) for(let r=1; r<=13; r++) 
             this.deck.push({ s, r, color: (s%2===1)?'red':'black', face: false });
+        
         this.shuffle();
         this.stock = this.deck;
         this.waste = [];
         this.founds = [[],[],[],[]];
         this.piles = Array.from({length:7}, () => []);
 
+        // 1. 配布アニメーション：山札から各列へ
         this.isAnimating = true;
         for(let i=0; i<7; i++) {
             for(let j=i; j<7; j++) {
-                let card = this.stock.pop();
+                const card = this.stock.pop();
                 if(i===j) card.face = true;
+                
+                // アニメーション用の一時的な描画
+                const tempEl = this.createCardUI({face: false}); // 配るときは裏向き
+                document.getElementById('stock').appendChild(tempEl);
+                
+                await this.moveElement(tempEl, `p-${j}`, this.piles[j].length);
                 this.piles[j].push(card);
                 this.render();
-                await new Promise(r => setTimeout(r, 40));
             }
         }
         this.isAnimating = false;
         this.render();
     }
 
-    clearBoard() { document.querySelectorAll('.slot').forEach(s => s.innerHTML = ''); }
     shuffle() {
         for(let i=this.deck.length-1; i>0; i--) {
             const j = Math.floor(Math.random()*(i+1));
@@ -118,6 +130,7 @@ class Solitaire {
         }
     }
 
+    // 2. 山札めくりアニメーション
     async draw() {
         if(this.isAnimating) return;
         if(!this.stock.length) {
@@ -125,19 +138,21 @@ class Solitaire {
             this.waste = [];
             this.render();
         } else {
-            const stockEl = document.getElementById('stock').firstChild;
-            if(stockEl) await this.animateElement(stockEl, 'waste');
+            const tempEl = this.createCardUI({face: false});
+            document.getElementById('stock').appendChild(tempEl);
+            await this.moveElement(tempEl, 'waste');
             this.waste.push({...this.stock.pop(), face: true});
             this.render();
         }
     }
 
+    // 3. 移動＆失敗時のアニメーション
     async tryMove(card, fromArr, cardEl) {
         if (this.isAnimating) return;
         let targetId = null;
         let targetArray = null;
 
-        // 移動可能チェック
+        // ルール判定
         for(let i=0; i<4; i++) {
             const f = this.founds[i];
             if(card.s === i && ((f.length===0 && card.r===1) || (f.length>0 && f[f.length-1].r === card.r-1))) {
@@ -155,36 +170,34 @@ class Solitaire {
         }
 
         if(targetId) {
-            await this.animateElement(cardEl, targetId, targetArray.length);
+            await this.moveElement(cardEl, targetId, targetArray.length);
             targetArray.push(fromArr.pop());
             if(fromArr.length > 0) fromArr[fromArr.length-1].face = true;
             this.render();
         } else {
-            // 【追加】間違っている場合のフルアニメーション
-            this.errorMotion(cardEl);
+            // 4. 失敗時のアニメーション（震える）
+            this.isAnimating = true;
+            cardEl.classList.add('error-shake');
+            setTimeout(() => {
+                cardEl.classList.remove('error-shake');
+                this.isAnimating = false;
+            }, 400);
         }
     }
 
-    errorMotion(el) {
-        this.isAnimating = true;
-        el.classList.add('error');
-        setTimeout(() => {
-            el.classList.remove('error');
-            this.isAnimating = false;
-        }, 400);
-    }
-
-    animateElement(el, targetId, offset = 0) {
+    moveElement(el, targetId, offset = 0) {
         return new Promise(resolve => {
             this.isAnimating = true;
             const targetEl = document.getElementById(targetId);
             const start = el.getBoundingClientRect();
             const end = targetEl.getBoundingClientRect();
+            
             const x = end.left - start.left;
             const y = (end.top - start.top) + (offset * 20);
 
             el.classList.add('moving');
             el.style.transform = `translate(${x}px, ${y}px)`;
+            
             setTimeout(() => {
                 el.classList.remove('moving');
                 this.isAnimating = false;
@@ -200,7 +213,7 @@ class Solitaire {
         for(let i=0; i<7; i++) {
             const p = document.getElementById(`p-${i}`); p.innerHTML = '';
             this.piles[i].forEach((c, idx) => {
-                const el = this.createUI(c, this.piles[i]);
+                const el = this.createCardUI(c, this.piles[i]);
                 el.style.top = (idx * 20) + 'px';
                 p.appendChild(el);
             });
@@ -209,15 +222,15 @@ class Solitaire {
 
     renderTarget(id, arr) {
         const slot = document.getElementById(id); slot.innerHTML = '';
-        if(arr.length) slot.appendChild(this.createUI(arr[arr.length-1], arr));
+        if(arr.length) slot.appendChild(this.createCardUI(arr[arr.length-1], arr));
     }
 
-    createUI(card, arr) {
+    createCardUI(card, arr = null) {
         const div = document.createElement('div');
         div.className = `card ${card.face ? card.color : 'back'}`;
         if(card.face) {
             div.innerHTML = `<div class="rank">${this.ranks[card.r-1]}</div><div class="suit">${this.suits[card.s]}</div>`;
-            div.onclick = (e) => { e.stopPropagation(); this.tryMove(card, arr, div); };
+            if(arr) div.onclick = (e) => { e.stopPropagation(); this.tryMove(card, arr, div); };
         }
         return div;
     }
