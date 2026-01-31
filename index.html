@@ -2,117 +2,63 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ソリティア Pro - Klondike</title>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solitaire Auto-Move Edition</title>
     <style>
         :root {
-            --card-width: 100px;
-            --card-height: 145px;
-            --green: #1a472a;
+            --card-w: min(12vw, 85px);
+            --card-h: calc(var(--card-w) * 1.4);
+            --gap: min(1.2vw, 10px);
         }
-        @media (max-width: 800px) {
-            :root { --card-width: 12vw; --card-height: 18vw; }
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
-            font-family: 'Lato', sans-serif;
-            background: radial-gradient(circle, #2d5a3d 0%, #1a472a 100%);
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 20px;
+            margin: 0; background: radial-gradient(circle, #2d5a3d, #12331d);
+            font-family: sans-serif; display: flex; flex-direction: column;
+            align-items: center; height: 100vh; overflow: hidden; color: white;
         }
-        .game-board {
-            width: 95%;
-            max-width: 1000px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .top-row, .tableau { display: flex; justify-content: space-between; width: 100%; }
-        .stock-waste, .foundations { display: flex; gap: 10px; }
-        
+        .board { width: 100%; max-width: 800px; padding: 15px; display: flex; flex-direction: column; gap: 20px; }
+        .row { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--gap); }
         .slot {
-            width: var(--card-width);
-            height: var(--card-height);
-            border: 2px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
+            width: var(--card-w); height: var(--card-h); border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
-            background: rgba(0,0,0,0.1);
         }
-        .slot::after {
-            content: attr(data-label);
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 2rem;
-            color: rgba(255,255,255,0.1);
-        }
-
         .card {
-            width: var(--card-width);
-            height: var(--card-height);
-            border-radius: 8px;
-            position: absolute;
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            padding: 5px;
-            border: 1px solid #ccc;
+            width: var(--card-w); height: var(--card-h); border-radius: 6px;
+            background: white; position: absolute; color: black;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex;
+            flex-direction: column; padding: 5px; box-sizing: border-box; cursor: pointer;
         }
-        .card.back {
-            background: #2a5738;
-            border: 3px solid white;
-            background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.1) 5px, rgba(255,255,255,0.1) 10px);
-        }
-        .card.red { color: #e44141; }
-        .card.black { color: #333; }
-        .card-rank { font-size: 1.2rem; font-weight: bold; }
-        .card-suit { font-size: 1.5rem; margin-top: -5px; }
-
-        .pile { width: var(--card-width); height: 500px; position: relative; }
-        .controls { position: fixed; bottom: 20px; }
-        button {
-            padding: 10px 25px; font-size: 1rem; cursor: pointer;
-            background: #f0e6d2; border: none; border-radius: 5px; font-weight: bold;
-        }
+        .card.back { background: #2c3e50; border: 2px solid white; }
+        .card.red { color: #d63031; }
+        .rank { font-size: 1.1rem; font-weight: bold; line-height: 1; }
+        .suit { font-size: 1.3rem; }
+        .controls { margin-top: 10px; }
+        button { padding: 8px 16px; border-radius: 20px; border: none; background: #f1c40f; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="game-board">
-    <div class="top-row">
-        <div class="stock-waste">
-            <div id="stock" class="slot" onclick="game.draw()"></div>
-            <div id="waste" class="slot"></div>
-        </div>
-        <div class="foundations">
-            <div id="f-0" class="slot" data-label="♠"></div>
-            <div id="f-1" class="slot" data-label="♥"></div>
-            <div id="f-2" class="slot" data-label="♣"></div>
-            <div id="f-3" class="slot" data-label="♦"></div>
-        </div>
+<div class="board">
+    <div class="row">
+        <div id="stock" class="slot" onclick="game.draw()"></div>
+        <div id="waste" class="slot"></div>
+        <div></div>
+        <div id="f-0" class="slot"></div>
+        <div id="f-1" class="slot"></div>
+        <div id="f-2" class="slot"></div>
+        <div id="f-3" class="slot"></div>
     </div>
-
-    <div class="tableau" id="tableau">
-        <div id="p-0" class="pile"></div>
-        <div id="p-1" class="pile"></div>
-        <div id="p-2" class="pile"></div>
-        <div id="p-3" class="pile"></div>
-        <div id="p-4" class="pile"></div>
-        <div id="p-5" class="pile"></div>
-        <div id="p-6" class="pile"></div>
+    <div class="row" id="tableau">
+        <div id="p-0" class="slot"></div>
+        <div id="p-1" class="slot"></div>
+        <div id="p-2" class="slot"></div>
+        <div id="p-3" class="slot"></div>
+        <div id="p-4" class="slot"></div>
+        <div id="p-5" class="slot"></div>
+        <div id="p-6" class="slot"></div>
     </div>
 </div>
-
-<div class="controls">
-    <button onclick="game.init()">新しいゲーム</button>
-</div>
+<div class="controls"><button onclick="game.init()">新しいゲーム</button></div>
 
 <script>
 class Solitaire {
@@ -124,22 +70,18 @@ class Solitaire {
 
     init() {
         this.deck = [];
-        for(let s=0; s<4; s++) {
-            for(let r=1; r<=13; r++) {
-                this.deck.push({ s, r, color: s%2===0?'black':'red', face: false });
-            }
-        }
+        for(let s=0; s<4; s++) for(let r=1; r<=13; r++) 
+            this.deck.push({ s, r, color: (s%2===1)?'red':'black', face: false });
         this.shuffle();
         this.stock = this.deck;
         this.waste = [];
+        this.founds = [[],[],[],[]];
         this.piles = Array.from({length:7}, () => []);
-        this.founds = Array.from({length:4}, () => []);
-        
         for(let i=0; i<7; i++) {
             for(let j=i; j<7; j++) {
-                let card = this.stock.pop();
-                if(i === j) card.face = true;
-                this.piles[j].push(card);
+                let c = this.stock.pop();
+                if(i===j) c.face = true;
+                this.piles[j].push(c);
             }
         }
         this.render();
@@ -147,78 +89,76 @@ class Solitaire {
 
     shuffle() {
         for(let i=this.deck.length-1; i>0; i--) {
-            const j = Math.floor(Math.random() * (i+1));
+            const j = Math.floor(Math.random()*(i+1));
             [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
         }
     }
 
     draw() {
-        if(this.stock.length === 0) {
-            this.stock = this.waste.reverse().map(c => ({...c, face:false}));
-            this.waste = [];
-        } else {
-            let card = this.stock.pop();
-            card.face = true;
-            this.waste.push(card);
-        }
+        if(!this.stock.length) { this.stock = this.waste.reverse().map(c=>({...c, face:false})); this.waste = []; }
+        else { let c = this.stock.pop(); c.face = true; this.waste.push(c); }
         this.render();
     }
 
-    // 自動移動（組札へ）
-    autoMove(card, fromArr) {
+    // スマート移動ロジック
+    tryMove(card, fromArr) {
+        // 1. 組札(Foundation)への移動チェック
         for(let i=0; i<4; i++) {
             const f = this.founds[i];
-            if(card.s === i && ((f.length === 0 && card.r === 1) || (f.length > 0 && f[f.length-1].r === card.r - 1))) {
+            if(card.s === i && ((f.length===0 && card.r===1) || (f.length>0 && f[f.length-1].r === card.r-1))) {
                 f.push(fromArr.pop());
-                if(fromArr.length > 0) fromArr[fromArr.length-1].face = true;
-                this.render();
-                return;
+                this.afterMove(fromArr); return;
             }
         }
-        // 場札間の移動（簡易実装：Kを空きへ）
-        if(card.r === 13) {
-            for(let i=0; i<7; i++) {
-                if(this.piles[i].length === 0) {
-                    this.piles[i].push(fromArr.pop());
-                    if(fromArr.length > 0) fromArr[fromArr.length-1].face = true;
-                    this.render();
-                    return;
-                }
+        // 2. 場札(Tableau)への移動チェック
+        for(let i=0; i<7; i++) {
+            const targetPile = this.piles[i];
+            if(targetPile === fromArr) continue;
+            const top = targetPile[targetPile.length-1];
+            
+            const canPlace = (!top && card.r === 13) || 
+                           (top && top.face && top.color !== card.color && top.r === card.r + 1);
+            
+            if(canPlace) {
+                targetPile.push(fromArr.pop());
+                this.afterMove(fromArr); return;
             }
         }
     }
 
-    createCardUI(card, fromArr) {
-        const div = document.createElement('div');
-        div.className = `card ${card.face ? card.color : 'back'}`;
-        if(card.face) {
-            div.innerHTML = `<span class="card-rank">${this.ranks[card.r-1]}</span><span class="card-suit">${this.suits[card.s]}</span>`;
-            div.onclick = () => this.autoMove(card, fromArr);
-        }
-        return div;
+    afterMove(arr) {
+        if(arr.length > 0) arr[arr.length-1].face = true;
+        this.render();
     }
 
     render() {
-        document.getElementById('stock').innerHTML = this.stock.length ? '<div class="card back"></div>' : '';
-        const w = document.getElementById('waste');
-        w.innerHTML = '';
-        if(this.waste.length) w.appendChild(this.createCardUI(this.waste[this.waste.length-1], this.waste));
+        document.getElementById('stock').innerHTML = this.stock.length ? `<div class="card back"></div>` : '';
+        const w = document.getElementById('waste'); w.innerHTML = '';
+        if(this.waste.length) w.appendChild(this.createUI(this.waste[this.waste.length-1], this.waste));
 
         for(let i=0; i<4; i++) {
-            const f = document.getElementById(`f-${i}`);
-            f.innerHTML = '';
-            if(this.founds[i].length) f.appendChild(this.createCardUI(this.founds[i][this.founds[i].length-1], this.founds[i]));
+            const f = document.getElementById(`f-${i}`); f.innerHTML = '';
+            if(this.founds[i].length) f.appendChild(this.createUI(this.founds[i][this.founds[i].length-1], this.founds[i]));
         }
 
         for(let i=0; i<7; i++) {
-            const p = document.getElementById(`p-${i}`);
-            p.innerHTML = '';
+            const p = document.getElementById(`p-${i}`); p.innerHTML = '';
             this.piles[i].forEach((c, idx) => {
-                const el = this.createCardUI(c, this.piles[i]);
-                el.style.top = (idx * 25) + 'px';
+                const el = this.createUI(c, this.piles[i]);
+                el.style.top = (idx * 20) + 'px';
                 p.appendChild(el);
             });
         }
+    }
+
+    createUI(card, arr) {
+        const div = document.createElement('div');
+        div.className = `card ${card.face ? card.color : 'back'}`;
+        if(card.face) {
+            div.innerHTML = `<div class="rank">${this.ranks[card.r-1]}</div><div class="suit">${this.suits[card.s]}</div>`;
+            div.onclick = (e) => { e.stopPropagation(); this.tryMove(card, arr); };
+        }
+        return div;
     }
 }
 const game = new Solitaire();
