@@ -777,32 +777,18 @@ const CARD_IMAGES = {
                     card.style.position = 'relative';
                     card.draggable = true;
                     
-                    // wasteスロットをクリックで選択
+                    // wasteスロットをタップでファウンデーションに自動移動
                     wasteEl.onclick = (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('Waste clicked');
-                        if (this.selectedCard && this.selectedFrom && this.selectedFrom.type === 'waste') {
-                            this.clearSelection();
-                            this.render();
-                        } else {
-                            this.clearSelection();
-                            this.selectCard([topCard], { type: 'waste' });
-                            card.classList.add('selected');
-                        }
+                        console.log('Waste clicked - trying auto move');
+                        this.autoMoveToFoundation(topCard, { type: 'waste' });
                     };
                     
                     wasteEl.ontouchstart = (e) => {
                         e.preventDefault();
-                        console.log('Waste touched');
-                        if (this.selectedCard && this.selectedFrom && this.selectedFrom.type === 'waste') {
-                            this.clearSelection();
-                            this.render();
-                        } else {
-                            this.clearSelection();
-                            this.selectCard([topCard], { type: 'waste' });
-                            card.classList.add('selected');
-                        }
+                        console.log('Waste touched - trying auto move');
+                        this.autoMoveToFoundation(topCard, { type: 'waste' });
                     };
                     
                     card.addEventListener('dragstart', (e) => {
@@ -905,67 +891,23 @@ const CARD_IMAGES = {
                         if (card.faceUp) {
                             cardEl.draggable = true;
                             
-                            // onclickとontouchstartで直接設定
+                            // onclickとontouchstartで直接設定 - ファウンデーションに自動移動
                             cardEl.onclick = (e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                console.log('Tableau card clicked', i, index);
-                                
-                                // 既に選択されているカードがあれば、このpileに移動を試みる
-                                if (this.selectedCard && this.selectedFrom && 
-                                    !(this.selectedFrom.type === 'tableau' && 
-                                      this.selectedFrom.pile === i && 
-                                      this.selectedFrom.index === index)) {
-                                    // 異なるカードが選択されている場合、移動を試みる
-                                    if (this.tryMoveSelected(i)) {
-                                        return; // 移動成功
-                                    } else {
-                                        this.clearSelection();
-                                        this.render();
-                                    }
-                                }
-                                
-                                // このカードを選択
-                                const cardsToMove = this.tableau[i].slice(index);
-                                if (this.selectedCard && this.selectedFrom && 
-                                    this.selectedFrom.type === 'tableau' && 
-                                    this.selectedFrom.pile === i && 
-                                    this.selectedFrom.index === index) {
-                                    this.clearSelection();
-                                } else {
-                                    this.selectCard(cardsToMove, { type: 'tableau', pile: i, index: index });
-                                    cardEl.classList.add('selected');
+                                console.log('Tableau card clicked - trying auto move', i, index);
+                                // 最後のカードのみファウンデーションに移動を試みる
+                                if (index === this.tableau[i].length - 1) {
+                                    this.autoMoveToFoundation(card, { type: 'tableau', pile: i });
                                 }
                             };
                             
                             cardEl.ontouchstart = (e) => {
                                 e.preventDefault();
-                                console.log('Tableau card touched', i, index);
-                                
-                                // 既に選択されているカードがあれば、このpileに移動を試みる
-                                if (this.selectedCard && this.selectedFrom && 
-                                    !(this.selectedFrom.type === 'tableau' && 
-                                      this.selectedFrom.pile === i && 
-                                      this.selectedFrom.index === index)) {
-                                    // 異なるカードが選択されている場合、移動を試みる
-                                    if (this.tryMoveSelected(i)) {
-                                        return; // 移動成功
-                                    } else {
-                                        this.clearSelection();
-                                        this.render();
-                                    }
-                                }
-                                
-                                // このカードを選択
-                                const cardsToMove = this.tableau[i].slice(index);
-                                if (this.selectedCard && this.selectedFrom && 
-                                    this.selectedFrom.type === 'tableau' && 
-                                    this.selectedFrom.pile === i && 
-                                    this.selectedFrom.index === index) {
-                                    this.clearSelection();
-                                } else {
-                                    this.selectCard(cardsToMove, { type: 'tableau', pile: i, index: index });
-                                    cardEl.classList.add('selected');
+                                console.log('Tableau card touched - trying auto move', i, index);
+                                // 最後のカードのみファウンデーションに移動を試みる
+                                if (index === this.tableau[i].length - 1) {
+                                    this.autoMoveToFoundation(card, { type: 'tableau', pile: i });
                                 }
                             };
                             
